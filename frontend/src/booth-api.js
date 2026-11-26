@@ -5,6 +5,7 @@ export const studio = {
   outlet: (booth, body) => request('/booths/' + booth + '/outlet', body),
   reports: booth => request('/optics/' + booth),
   test: (booth, body) => request('/optics/' + booth + '/evaluate', body),
+  supplement: (booth, body) => request('/optics/' + booth + '/supplement', body),
   result: awaitCompute,
   save: body => request('/optics/save', body),
   cabinet: () => request('/lenses'),

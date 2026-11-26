@@ -21,6 +21,8 @@ def clear(booth_code, form, user):
         powered(booth)
         report = lookup(conn, measurements, form.measurement_code)
         current(booth, report)
+        if report['judgment_pending']:
+            raise HTTPException(409, '补测已入账，等待新判别结果后再签放')
         loan = active_loan(conn,booth_code)
         if loan and report['source_measurement'] != loan['original_measurement']:
             raise HTTPException(409,'替用镜头必须有一次引用原校准项的复测')

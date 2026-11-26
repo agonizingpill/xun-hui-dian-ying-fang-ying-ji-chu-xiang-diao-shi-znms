@@ -15,9 +15,13 @@ export function votes(output) {
 }
 
 export function measurement(report) {
-  return el('details',{},el('summary',{},report.code+' · ',tag(artifacts,report.artifact),' · '+percent(report.probability)),
+  const missing=Object.keys(fields).filter(key=>report[key]==null);
+  return el('details',{},el('summary',{},report.code+' · ',tag(artifacts,report.artifact),' · '+percent(report.probability),
+      missing.length?' · 缺 '+missing.map(key=>fields[key]).join('、'):'',
+      report.judgment_pending?' · 补测待判别':'',report.supplement_of?' · 另记补测':''),
     el('p',{class:'mono'},report.card+' · 电气 '+report.receipt_revision+' · 光学 '+report.optical_epoch),
     el('p',{},report.source_measurement ? '原检测 '+report.source_measurement:'首次检测'),
-    el('p',{},Object.entries(fields).map(([key,label])=>label+' '+report[key].toFixed(2)).join(' · ')),
+    report.supplement_of?el('p',{},'补测另记 · 原单 '+report.supplement_of):null,
+    el('p',{},Object.entries(fields).map(([key,label])=>label+' '+(report[key]==null?'缺':report[key].toFixed(2))).join(' · ')),
     votes(report));
 }

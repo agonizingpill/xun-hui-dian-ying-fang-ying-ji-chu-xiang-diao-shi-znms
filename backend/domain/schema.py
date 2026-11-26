@@ -1,5 +1,5 @@
 from typing import Annotated, Literal
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
 
 Code = Annotated[str, StringConstraints(strip_whitespace=True, pattern=r'^[A-Z0-9][A-Z0-9-]{2,23}$')]
 Card = Annotated[str, StringConstraints(strip_whitespace=True, min_length=3, max_length=36)]
@@ -17,13 +17,28 @@ class Outlet(Input):
     breakers: Annotated[int, Field(ge=0, le=100)]
 
 
+SENSOR_FIELDS = ('edge_loss', 'color_error', 'flicker_index', 'frame_var')
+
+
 class CardReading(Input):
     card: Card
     source_measurement: Code | None = None
-    edge_loss: Ratio
-    color_error: Ratio
-    flicker_index: Ratio
-    frame_var: Ratio
+    edge_loss: Ratio | None = None
+    color_error: Ratio | None = None
+    flicker_index: Ratio | None = None
+    frame_var: Ratio | None = None
+
+    @model_validator(mode='after')
+    def single_gap(self):
+        missing = [name for name in SENSOR_FIELDS if getattr(self, name) is None]
+        if len(missing) > 1:
+            raise ValueError('校准单至少需三项读数，缺项至多一项')
+        return self
+
+
+class Supplement(Input):
+    measurement_code: Code
+    value: Ratio
 
 
 class SaveCard(Input):

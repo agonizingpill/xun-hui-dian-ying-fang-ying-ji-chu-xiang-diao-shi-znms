@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from core.auth import actor, allow
 from core.roles import REVIEW, WRITE
 from domain import call_sheet, catalog, measurement, outlet, spares
-from domain.schema import CardReading, Clearance, LensReturn, Loan, Outlet, SaveCard
+from domain.schema import CardReading, Clearance, LensReturn, Loan, Outlet, SaveCard, Supplement
 
 power = APIRouter(prefix='/booths')
 optics = APIRouter(prefix='/optics')
@@ -30,6 +30,12 @@ def reports(code: str,user=Depends(actor)):
 def judge(code: str,form: CardReading,user=Depends(actor)):
     allow(user,WRITE)
     return measurement.evaluate(code,form,user)
+
+
+@optics.post('/{code}/supplement',status_code=202)
+def supplement(code: str,form: Supplement,user=Depends(actor)):
+    allow(user,WRITE)
+    return measurement.supplement(code,form,user)
 
 
 @optics.post('/save',status_code=201)

@@ -1,6 +1,6 @@
 import {el} from '../dom.js';
 import {studio} from '../booth-api.js';
-import {artifacts,booths,desk} from '../booth-state.js';
+import {artifacts,booths,desk,fields} from '../booth-state.js';
 import {percent,select,submit} from '../inputs.js';
 import {status,titleBlock} from '../widgets.js';
 import {showPicker} from '../components/show-picker.js';
@@ -16,16 +16,22 @@ export async function release(root,role) {
     const booth=data.booth;
     const current=data.reports.filter(row=>row.receipt_revision===booth.receipt_revision &&
       row.optical_epoch===booth.optical_epoch);
+    const pending=current.some(row=>row.judgment_pending);
+    const signable=current.filter(row=>!row.judgment_pending);
     sheet.replaceChildren(el('h2',{},booth.venue),el('p',{class:'clock'},booth.show_slot),
       tag(booths,booth.state),booth.released_measurement?el('div',{class:'callout'},
         el('strong',{},'放映回执'),el('p',{class:'mono'},booth.released_measurement)):null,
       el('h3',{},'本期画质凭证'),current.length?current.map(row=>el('div',{class:'stationrow'},
-        el('p',{class:'mono'},row.code+' · '+percent(row.probability)),tag(artifacts,row.artifact))):
+        el('p',{class:'mono'},row.code+' · '+percent(row.probability)+
+          (Object.keys(fields).some(key=>row[key]==null)?' · 三项读数':'')+
+          (row.judgment_pending?' · 补测待判别':'')),
+        tag(artifacts,row.artifact))):
         status('当前接电与镜头版本下没有有效检测。'));
     gate.replaceChildren(el('h2',{},'交班放行'),message?status(message,'ok'):null,
+      pending?status('补测已入账，等待新判别结果后再签放。'):null,
       data.active_loan ? el('p',{class:'callout'},'当前镜头为替用件 · 复测必须引用 '+data.active_loan.original_measurement):null);
-    if(role==='reviewer' && current.length && booth.state!=='cleared') {
-      gate.append(submit('clear',[select('measurement_code','本期校准凭证',current.map(row=>[row.code,row.code + ' · ' + artifacts[row.artifact]]))],
+    if(role==='reviewer' && signable.length && booth.state!=='cleared') {
+      gate.append(submit('clear',[select('measurement_code','本期校准凭证',signable.map(row=>[row.code,row.code + ' · ' + artifacts[row.artifact]]))],
         '确认放映放行',async form=>{
           await studio.clear(code,{measurement_code:form.get('measurement_code')});
           await draw(code,'已签放映回执，交给开场值守。');
